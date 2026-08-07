@@ -115,9 +115,9 @@ jobs:
 
       - name: Set Terraform Azure Auth Env
         run: |
-          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> "$GITHUB_ENV"
-          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_ENV"
-          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> "$GITHUB_ENV"
+          echo "ARM_CLIENT_ID=${{ vars.AZURE_CLIENT_ID }}" >> "$GITHUB_ENV"
+          echo "ARM_SUBSCRIPTION_ID=${{ vars.AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_ENV"
+          echo "ARM_TENANT_ID=${{ vars.AZURE_TENANT_ID }}" >> "$GITHUB_ENV"
           echo "ARM_USE_OIDC=true" >> "$GITHUB_ENV"
           echo "ARM_OIDC_TOKEN=${{ steps.oidc.outputs.token }}" >> "$GITHUB_ENV"
 
@@ -186,9 +186,9 @@ jobs:
       - name: Terraform Plan
         if: ${{ inputs.action == 'plan' }}
         env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           ARM_USE_OIDC: "true"
           ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
@@ -197,9 +197,9 @@ jobs:
       - name: Terraform Apply
         if: ${{ inputs.action == 'apply' }}
         env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           ARM_USE_OIDC: "true"
           ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
@@ -208,9 +208,9 @@ jobs:
       - name: Terraform Destroy
         if: ${{ inputs.action == 'destroy' }}
         env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           ARM_USE_OIDC: "true"
           ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
