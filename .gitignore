@@ -1,0 +1,16 @@
+# Local .terraform directories
+**/.terraform/
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Exclude sensitive tfvars (if any)
+# *.tfvars
+
+# Ignore CLI state
+.terraform.lock.hcl
