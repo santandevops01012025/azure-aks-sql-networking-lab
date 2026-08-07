@@ -60,6 +60,13 @@ variable "default_node_pool" {
   description = "(Required) Configuration object for the default system node pool."
 }
 
+variable "vnet_subnet_id" {
+  type        = string
+  default     = null
+  description = "(Optional) The ID of a Subnet where the Kubernetes default node pool should be attached."
+}
+
+
 variable "identity_type" {
   type        = string
   default     = "SystemAssigned"

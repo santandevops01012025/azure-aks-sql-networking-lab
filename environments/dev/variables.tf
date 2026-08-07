@@ -10,6 +10,12 @@ variable "location" {
   default     = "eastus"
 }
 
+variable "sql_location" {
+  type        = string
+  description = "Azure Region for the SQL Server and database."
+  default     = "centralindia"
+}
+
 variable "workload" {
   type        = string
   description = "Workload or application identifier."
@@ -31,7 +37,7 @@ variable "aks_node_count" {
 variable "aks_vm_size" {
   type        = string
   description = "VM size for AKS default node pool."
-  default     = "Standard_D2s_v5"
+  default     = "Standard_D2s_v7"
 }
 
 variable "sql_admin_username" {

@@ -9,19 +9,19 @@ resource "azurerm_nat_gateway" "this" {
 }
 
 resource "azurerm_nat_gateway_public_ip_association" "this" {
-  for_each             = toset(var.public_ip_address_ids)
+  count                = length(var.public_ip_address_ids)
   nat_gateway_id       = azurerm_nat_gateway.this.id
-  public_ip_address_id = each.value
+  public_ip_address_id = var.public_ip_address_ids[count.index]
 }
 
 resource "azurerm_nat_gateway_public_ip_prefix_association" "this" {
-  for_each            = toset(var.public_ip_prefix_ids)
+  count               = length(var.public_ip_prefix_ids)
   nat_gateway_id      = azurerm_nat_gateway.this.id
-  public_ip_prefix_id = each.value
+  public_ip_prefix_id = var.public_ip_prefix_ids[count.index]
 }
 
 resource "azurerm_subnet_nat_gateway_association" "this" {
-  for_each       = toset(var.subnet_ids)
+  count          = length(var.subnet_ids)
   nat_gateway_id = azurerm_nat_gateway.this.id
-  subnet_id      = each.value
+  subnet_id      = var.subnet_ids[count.index]
 }

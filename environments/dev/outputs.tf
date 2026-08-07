@@ -4,7 +4,13 @@ output "vnet_id" {
 }
 
 output "subnet_ids" {
-  value       = module.subnets.subnet_ids
+  value = {
+    "AzureBastionSubnet" = module.subnet_bastion.id
+    "snet-aks"           = module.subnet_aks.id
+    "snet-backend"       = module.subnet_backend.id
+    "snet-pe"            = module.subnet_pe.id
+    "snet-appservice"    = module.subnet_appservice.id
+  }
   description = "Map of created Subnet IDs."
 }
 

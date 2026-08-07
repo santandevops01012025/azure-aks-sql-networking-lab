@@ -13,10 +13,10 @@ resource "azurerm_kubernetes_cluster" "this" {
     name                = var.default_node_pool.name
     vm_size             = var.default_node_pool.vm_size
     node_count          = var.default_node_pool.enable_auto_scaling ? null : var.default_node_pool.node_count
-    enable_auto_scaling = var.default_node_pool.enable_auto_scaling
+    auto_scaling_enabled = var.default_node_pool.enable_auto_scaling
     min_count           = var.default_node_pool.enable_auto_scaling ? var.default_node_pool.min_count : null
     max_count           = var.default_node_pool.enable_auto_scaling ? var.default_node_pool.max_count : null
-    vnet_subnet_id      = var.default_node_pool.vnet_subnet_id
+    vnet_subnet_id      = var.vnet_subnet_id != null ? var.vnet_subnet_id : var.default_node_pool.vnet_subnet_id
     os_disk_size_gb     = var.default_node_pool.os_disk_size_gb
     zones               = var.default_node_pool.zones
     type                = var.default_node_pool.type
