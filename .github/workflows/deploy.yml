@@ -1,0 +1,134 @@
+name: "Terraform Environment Deployment"
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: "Select Target Environment"
+        required: true
+        options:
+          - dev
+          - test
+          - prod
+        default: dev
+
+      action:
+        type: choice
+        description: "Select Terraform Action"
+        required: true
+        options:
+          - plan
+          - apply
+          - destroy
+        default: plan
+
+      target_resources:
+        type: choice
+        description: "Select Specific Module to Target (or All)"
+        required: true
+        options:
+          - "All Resources"
+          - "Network (VNet & Subnets)"
+          - "Kubernetes Cluster (AKS)"
+          - "Container Registry (ACR)"
+          - "Key Vault"
+          - "Database (SQL Server & DB)"
+          - "Storage Account"
+          - "Bastion Host"
+          - "NAT Gateway"
+          - "Redis Cache"
+          - "App Service"
+        default: "All Resources"
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform:
+    name: "Terraform ${{ inputs.action }} [${{ inputs.environment }}]"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "environments/${{ inputs.environment }}"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        continue-on-error: true
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8.5"
+
+      - name: Construct Target Flags
+        id: targets
+        run: |
+          TARGET_FLAG=""
+          case "${{ inputs.target_resources }}" in
+            "Network (VNet & Subnets)")
+              TARGET_FLAG="-target=module.vnet -target=module.subnets"
+              ;;
+            "Kubernetes Cluster (AKS)")
+              TARGET_FLAG="-target=module.aks"
+              ;;
+            "Container Registry (ACR)")
+              TARGET_FLAG="-target=module.acr"
+              ;;
+            "Key Vault")
+              TARGET_FLAG="-target=module.key_vault"
+              ;;
+            "Database (SQL Server & DB)")
+              TARGET_FLAG="-target=module.sql_server -target=module.sql_database"
+              ;;
+            "Storage Account")
+              TARGET_FLAG="-target=module.storage"
+              ;;
+            "Bastion Host")
+              TARGET_FLAG="-target=module.pip_bastion -target=module.bastion"
+              ;;
+            "NAT Gateway")
+              TARGET_FLAG="-target=module.pip_nat -target=module.nat_gateway"
+              ;;
+            "Redis Cache")
+              TARGET_FLAG="-target=module.redis"
+              ;;
+            "App Service")
+              TARGET_FLAG="-target=module.app_service"
+              ;;
+            "All Resources"|*)
+              TARGET_FLAG=""
+              ;;
+          esac
+          echo "target_flag=${TARGET_FLAG}" >> $GITHUB_OUTPUT
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Plan
+        if: ${{ inputs.action == 'plan' }}
+        run: |
+          terraform plan -var-file="terraform.tfvars" ${{ steps.targets.outputs.target_flag }}
+
+      - name: Terraform Apply
+        if: ${{ inputs.action == 'apply' }}
+        run: |
+          terraform apply -var-file="terraform.tfvars" ${{ steps.targets.outputs.target_flag }} -auto-approve
+
+      - name: Terraform Destroy
+        if: ${{ inputs.action == 'destroy' }}
+        run: |
+          terraform destroy -var-file="terraform.tfvars" ${{ steps.targets.outputs.target_flag }} -auto-approve
