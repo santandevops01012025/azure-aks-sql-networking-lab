@@ -121,6 +121,13 @@ jobs:
           echo "ARM_USE_OIDC=true" >> "$GITHUB_ENV"
           echo "ARM_OIDC_TOKEN=${{ steps.oidc.outputs.token }}" >> "$GITHUB_ENV"
 
+      - name: Verify Azure Auth Env
+        run: |
+          echo "ARM_CLIENT_ID set: $([ -n "$ARM_CLIENT_ID" ] && echo yes || echo no)"
+          echo "ARM_TENANT_ID set: $([ -n "$ARM_TENANT_ID" ] && echo yes || echo no)"
+          echo "ARM_USE_OIDC set: $([ -n "$ARM_USE_OIDC" ] && echo "$ARM_USE_OIDC" || echo no)"
+          echo "ARM_OIDC_TOKEN set: $([ -n "$ARM_OIDC_TOKEN" ] && echo yes || echo no)"
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -178,15 +185,33 @@ jobs:
 
       - name: Terraform Plan
         if: ${{ inputs.action == 'plan' }}
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_USE_OIDC: "true"
+          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
           terraform plan -var-file="terraform.tfvars" ${{ steps.targets.outputs.target_flags }}
 
       - name: Terraform Apply
         if: ${{ inputs.action == 'apply' }}
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_USE_OIDC: "true"
+          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
           terraform apply -var-file="terraform.tfvars" ${{ steps.targets.outputs.target_flags }} -auto-approve
 
       - name: Terraform Destroy
         if: ${{ inputs.action == 'destroy' }}
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_USE_OIDC: "true"
+          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
           terraform destroy -var-file="terraform.tfvars" ${{ steps.targets.outputs.target_flags }} -auto-approve
