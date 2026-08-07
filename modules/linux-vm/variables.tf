@@ -37,7 +37,21 @@ variable "admin_username" {
 
 variable "ssh_public_key" {
   type        = string
-  description = "(Required) The OpenSSH public key string for SSH authentication."
+  default     = null
+  description = "(Optional) The OpenSSH public key string for SSH authentication. Required if disable_password_authentication is true."
+}
+
+variable "admin_password" {
+  type        = string
+  sensitive   = true
+  default     = null
+  description = "(Optional) The admin password for authentication when disable_password_authentication is false."
+}
+
+variable "disable_password_authentication" {
+  type        = bool
+  default     = false
+  description = "(Optional) Specifies whether password authentication is disabled. Set to true to require SSH key auth only. Defaults to false."
 }
 
 variable "create_public_ip" {

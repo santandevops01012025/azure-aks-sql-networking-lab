@@ -78,6 +78,11 @@ on:
         description: "[Select] App Service & Plan"
         default: false
 
+      deploy_linux_vm:
+        type: boolean
+        description: "[Select] Linux Virtual Machine (with Public IP)"
+        default: false
+
 permissions:
   id-token: write
   contents: read
@@ -115,7 +120,7 @@ jobs:
 
           if [ "${{ inputs.deploy_all }}" = "false" ]; then
             if [ "${{ inputs.deploy_network }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.vnet -target=module.subnets"
+              TARGET_FLAGS="$TARGET_FLAGS -target=module.vnet -target=module.subnet_bastion -target=module.subnet_aks -target=module.subnet_backend -target=module.subnet_pe -target=module.subnet_appservice"
             fi
             if [ "${{ inputs.deploy_aks }}" = "true" ]; then
               TARGET_FLAGS="$TARGET_FLAGS -target=module.aks"
@@ -143,6 +148,9 @@ jobs:
             fi
             if [ "${{ inputs.deploy_app_service }}" = "true" ]; then
               TARGET_FLAGS="$TARGET_FLAGS -target=module.app_service"
+            fi
+            if [ "${{ inputs.deploy_linux_vm }}" = "true" ]; then
+              TARGET_FLAGS="$TARGET_FLAGS -target=module.linux_vm"
             fi
           fi
 

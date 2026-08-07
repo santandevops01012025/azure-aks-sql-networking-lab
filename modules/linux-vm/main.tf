@@ -29,15 +29,19 @@ resource "azurerm_linux_virtual_machine" "this" {
   location                        = var.location
   size                            = var.vm_size
   admin_username                  = var.admin_username
-  disable_password_authentication = true
+  admin_password                  = var.disable_password_authentication ? null : var.admin_password
+  disable_password_authentication = var.disable_password_authentication
   network_interface_ids           = [azurerm_network_interface.this.id]
   zone                            = var.zone
   custom_data                     = var.custom_data
   tags                            = var.tags
 
-  admin_ssh_key {
-    username   = var.admin_username
-    public_key = var.ssh_public_key
+  dynamic "admin_ssh_key" {
+    for_each = var.ssh_public_key != null ? [{}] : []
+    content {
+      username   = var.admin_username
+      public_key = var.ssh_public_key
+    }
   }
 
   os_disk {

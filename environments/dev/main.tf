@@ -100,7 +100,7 @@ module "log_analytics" {
 
 # 4. Azure Container Registry (ACR)
 module "acr" {
-  source              = "../../modules/acr"
+  source                        = "../../modules/acr"
   name                          = "cr${var.workload}${var.environment}001"
   resource_group_name           = module.rg_compute.name
   location                      = module.rg_compute.location
@@ -263,4 +263,20 @@ module "app_service" {
   }
 
   tags = var.tags
+}
+
+# 13. Linux Virtual Machine
+module "linux_vm" {
+  source                          = "../../modules/linux-vm"
+  name                            = var.vm_name
+  resource_group_name             = module.rg_compute.name
+  location                        = module.rg_compute.location
+  subnet_id                       = module.subnet_backend.id
+  vm_size                         = var.vm_size
+  admin_username                  = var.vm_admin_username
+  admin_password                  = var.vm_admin_password
+  disable_password_authentication = false
+  create_public_ip                = var.vm_create_public_ip
+  zone                            = var.vm_zone
+  tags                            = var.tags
 }
