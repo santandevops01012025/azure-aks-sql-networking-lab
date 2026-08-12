@@ -74,8 +74,8 @@ terraform-enterprise/
 module "pip_bastion" {
   source              = "./modules/public-ip"
   name                = "pip-bas-dev-eastus"
-  resource_group_name = module.rg_network.name
-  location            = module.rg_network.location
+  resource_group_name = module.rg.name
+  location            = module.rg.location
   allocation_method   = "Static"
   sku                 = "Standard"
 }
@@ -84,8 +84,8 @@ module "pip_bastion" {
 module "bastion" {
   source               = "./modules/bastion"
   name                 = "bas-dev-eastus"
-  resource_group_name  = module.rg_network.name
-  location             = module.rg_network.location
+  resource_group_name  = module.rg.name
+  location             = module.rg.location
   subnet_id            = module.subnet_bastion.id # Subnet MUST be named AzureBastionSubnet
   public_ip_address_id = module.pip_bastion.id
   sku                  = "Standard"

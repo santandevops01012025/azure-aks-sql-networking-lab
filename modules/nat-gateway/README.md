@@ -64,8 +64,8 @@ terraform-enterprise/
 module "pip_nat" {
   source              = "./modules/public-ip"
   name                = "pip-ng-dev-eastus"
-  resource_group_name = module.rg_network.name
-  location            = module.rg_network.location
+  resource_group_name = module.rg.name
+  location            = module.rg.location
   allocation_method   = "Static"
   sku                 = "Standard"
 }
@@ -74,8 +74,8 @@ module "pip_nat" {
 module "nat_gateway" {
   source                = "./modules/nat-gateway"
   name                  = "ng-dev-eastus"
-  resource_group_name   = module.rg_network.name
-  location              = module.rg_network.location
+  resource_group_name   = module.rg.name
+  location              = module.rg.location
   public_ip_address_ids = [module.pip_nat.id]
   subnet_ids            = [module.subnet_aks.id, module.subnet_backend.id]
 

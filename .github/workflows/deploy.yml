@@ -1,217 +1,167 @@
-name: "Interactive Terraform Environment Deployment"
+name: "Deploy Azure Infrastructure"
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        type: choice
-        description: "Select Target Environment"
+        description: "Target environment"
         required: true
+        type: choice
         options:
           - dev
           - test
           - prod
-        default: dev
-
-      action:
-        type: choice
-        description: "Select Terraform Action"
+      resource_group:
+        description: "Resource Group"
         required: true
+        type: boolean
+        default: false
+      networking:
+        description: "Networking (VNet + Subnets + NAT Gateway + Bastion)"
+        required: true
+        type: boolean
+        default: false
+      log_analytics:
+        description: "Log Analytics"
+        required: true
+        type: boolean
+        default: false
+      acr:
+        description: "Azure Container Registry (ACR)"
+        required: true
+        type: boolean
+        default: false
+      aks:
+        description: "Azure Kubernetes Service (AKS)"
+        required: true
+        type: boolean
+        default: false
+      key_vault:
+        description: "Key Vault"
+        required: true
+        type: boolean
+        default: false
+      storage:
+        description: "Storage Account"
+        required: true
+        type: boolean
+        default: false
+      sql:
+        description: "SQL Server & Database"
+        required: true
+        type: boolean
+        default: false
+      redis:
+        description: "Redis Cache"
+        required: true
+        type: boolean
+        default: false
+      app_service:
+        description: "App Service"
+        required: true
+        type: boolean
+        default: false
+      linux_vm:
+        description: "Linux VM"
+        required: true
+        type: boolean
+        default: false
+      action:
+        description: "Terraform Action"
+        required: true
+        type: choice
         options:
           - plan
           - apply
           - destroy
-        default: plan
-
-      deploy_all:
-        type: boolean
-        description: "[All] Deploy Entire Environment Infrastructure"
-        default: true
-
-      deploy_network:
-        type: boolean
-        description: "[Select] Network (VNet & Subnets)"
-        default: false
-
-      deploy_aks:
-        type: boolean
-        description: "[Select] Kubernetes Cluster (AKS)"
-        default: false
-
-      deploy_acr:
-        type: boolean
-        description: "[Select] Container Registry (ACR)"
-        default: false
-
-      deploy_key_vault:
-        type: boolean
-        description: "[Select] Key Vault"
-        default: false
-
-      deploy_sql:
-        type: boolean
-        description: "[Select] Database (SQL Server & DB)"
-        default: false
-
-      deploy_storage:
-        type: boolean
-        description: "[Select] Storage Account"
-        default: false
-
-      deploy_bastion:
-        type: boolean
-        description: "[Select] Bastion Host"
-        default: false
-
-      deploy_nat_gateway:
-        type: boolean
-        description: "[Select] NAT Gateway"
-        default: false
-
-      deploy_redis:
-        type: boolean
-        description: "[Select] Redis Cache"
-        default: false
-
-      deploy_app_service:
-        type: boolean
-        description: "[Select] App Service & Plan"
-        default: false
-
-      deploy_linux_vm:
-        type: boolean
-        description: "[Select] Linux Virtual Machine (with Public IP)"
-        default: false
 
 permissions:
   id-token: write
   contents: read
-  pull-requests: write
+
+env:
+  TF_VERSION: "1.9.8"
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
 jobs:
-  terraform:
-    name: "Terraform ${{ inputs.action }} [${{ inputs.environment }}]"
+  deploy:
+    name: "Terraform ${{ inputs.action }} - ${{ inputs.environment }}"
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: "environments/${{ inputs.environment }}"
+        working-directory: environments/${{ inputs.environment }}
 
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: OIDC Token
-        id: oidc
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const token = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
-            const url = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
-            const resp = await fetch(`${url}&audience=api://AzureADTokenExchange`, {
-              headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
-            });
-            const data = await resp.json();
-            core.setOutput('token', data.value);
-
-      - name: Set Terraform Azure Auth Env
-        run: |
-          echo "ARM_CLIENT_ID=${{ vars.AZURE_CLIENT_ID }}" >> "$GITHUB_ENV"
-          echo "ARM_SUBSCRIPTION_ID=${{ vars.AZURE_SUBSCRIPTION_ID }}" >> "$GITHUB_ENV"
-          echo "ARM_TENANT_ID=${{ vars.AZURE_TENANT_ID }}" >> "$GITHUB_ENV"
-          echo "ARM_USE_OIDC=true" >> "$GITHUB_ENV"
-          echo "ARM_OIDC_TOKEN=${{ steps.oidc.outputs.token }}" >> "$GITHUB_ENV"
-
-      - name: Verify Azure Auth Env
-        run: |
-          echo "ARM_CLIENT_ID set: $([ -n "$ARM_CLIENT_ID" ] && echo yes || echo no)"
-          echo "ARM_TENANT_ID set: $([ -n "$ARM_TENANT_ID" ] && echo yes || echo no)"
-          echo "ARM_USE_OIDC set: $([ -n "$ARM_USE_OIDC" ] && echo "$ARM_USE_OIDC" || echo no)"
-          echo "ARM_OIDC_TOKEN set: $([ -n "$ARM_OIDC_TOKEN" ] && echo yes || echo no)"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.8.5"
-
-      - name: Construct Dynamic Target Flags
-        id: targets
-        run: |
-          TARGET_FLAGS=""
-
-          if [ "${{ inputs.deploy_all }}" = "false" ]; then
-            if [ "${{ inputs.deploy_network }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.vnet -target=module.subnet_bastion -target=module.subnet_aks -target=module.subnet_backend -target=module.subnet_pe -target=module.subnet_appservice"
-            fi
-            if [ "${{ inputs.deploy_aks }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.aks"
-            fi
-            if [ "${{ inputs.deploy_acr }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.acr"
-            fi
-            if [ "${{ inputs.deploy_key_vault }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.key_vault"
-            fi
-            if [ "${{ inputs.deploy_sql }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.sql_server -target=module.sql_database"
-            fi
-            if [ "${{ inputs.deploy_storage }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.storage"
-            fi
-            if [ "${{ inputs.deploy_bastion }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.pip_bastion -target=module.bastion"
-            fi
-            if [ "${{ inputs.deploy_nat_gateway }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.pip_nat -target=module.nat_gateway"
-            fi
-            if [ "${{ inputs.deploy_redis }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.redis"
-            fi
-            if [ "${{ inputs.deploy_app_service }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.app_service"
-            fi
-            if [ "${{ inputs.deploy_linux_vm }}" = "true" ]; then
-              TARGET_FLAGS="$TARGET_FLAGS -target=module.linux_vm"
-            fi
-          fi
-
-          echo "Selected Target Flags: ${TARGET_FLAGS}"
-          echo "target_flags=${TARGET_FLAGS}" >> $GITHUB_OUTPUT
+          terraform_version: ${{ env.TF_VERSION }}
 
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Format Check
-        run: terraform fmt -check
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Build Target List
+        id: targets
+        run: |
+          TARGETS=""
+          if [ "${{ inputs.resource_group }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.rg"
+          fi
+          if [ "${{ inputs.networking }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.vnet"
+            TARGETS="$TARGETS -target=module.subnets"
+            TARGETS="$TARGETS -target=module.pip_bastion"
+            TARGETS="$TARGETS -target=module.bastion"
+            TARGETS="$TARGETS -target=module.pip_nat"
+            TARGETS="$TARGETS -target=module.nat_gateway"
+          fi
+          if [ "${{ inputs.log_analytics }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.log_analytics"
+          fi
+          if [ "${{ inputs.acr }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.acr"
+          fi
+          if [ "${{ inputs.aks }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.aks"
+          fi
+          if [ "${{ inputs.key_vault }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.key_vault"
+          fi
+          if [ "${{ inputs.storage }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.storage"
+          fi
+          if [ "${{ inputs.sql }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.sql_server"
+            TARGETS="$TARGETS -target=module.sql_database"
+          fi
+          if [ "${{ inputs.redis }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.redis"
+          fi
+          if [ "${{ inputs.app_service }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.app_service"
+          fi
+          if [ "${{ inputs.linux_vm }}" = "true" ]; then
+            TARGETS="$TARGETS -target=module.linux_vm"
+          fi
+          echo "TARGETS=$TARGETS" >> $GITHUB_OUTPUT
 
       - name: Terraform Plan
-        if: ${{ inputs.action == 'plan' }}
-        env:
-          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-          ARM_USE_OIDC: "true"
-          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
-        run: |
-          terraform plan -var-file="terraform.tfvars" ${{ steps.targets.outputs.target_flags }}
+        if: inputs.action == 'plan'
+        run: terraform plan -no-color ${{ steps.targets.outputs.TARGETS }}
 
       - name: Terraform Apply
-        if: ${{ inputs.action == 'apply' }}
-        env:
-          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-          ARM_USE_OIDC: "true"
-          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
-        run: |
-          terraform apply -var-file="terraform.tfvars" ${{ steps.targets.outputs.target_flags }} -auto-approve
+        if: inputs.action == 'apply'
+        run: terraform apply -auto-approve -no-color ${{ steps.targets.outputs.TARGETS }}
 
       - name: Terraform Destroy
-        if: ${{ inputs.action == 'destroy' }}
-        env:
-          ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-          ARM_USE_OIDC: "true"
-          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
-        run: |
-          terraform destroy -var-file="terraform.tfvars" ${{ steps.targets.outputs.target_flags }} -auto-approve
+        if: inputs.action == 'destroy'
+        run: terraform destroy -auto-approve -no-color ${{ steps.targets.outputs.TARGETS }}

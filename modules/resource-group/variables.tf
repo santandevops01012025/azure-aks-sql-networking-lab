@@ -3,8 +3,8 @@ variable "name" {
   description = "(Required) Specifies the name of the Resource Group. Must follow Azure Cloud Adoption Framework (CAF) naming conventions."
 
   validation {
-    condition     = can(regex("^rg-[a-zA-Z0-9-]{1,87}$", var.name))
-    error_message = "Resource group name must start with 'rg-' and contain only alphanumeric characters or hyphens (max 90 chars)."
+    condition     = can(regex("^(rg-|santan-)[a-zA-Z0-9-]{1,87}$", var.name))
+    error_message = "Resource group name must start with 'rg-' or 'santan-' and contain only alphanumeric characters or hyphens (max 90 chars)."
   }
 }
 

@@ -9,24 +9,10 @@ resource "random_id" "suffix" {
   }
 }
 
-# 1. Resource Groups
-module "rg_network" {
+# 1. Resource Group
+module "rg" {
   source   = "../../modules/resource-group"
-  name     = "rg-network-${var.environment}-${var.location}"
-  location = var.location
-  tags     = var.tags
-}
-
-module "rg_compute" {
-  source   = "../../modules/resource-group"
-  name     = "rg-compute-${var.environment}-${var.location}"
-  location = var.location
-  tags     = var.tags
-}
-
-module "rg_data" {
-  source   = "../../modules/resource-group"
-  name     = "rg-data-${var.environment}-${var.location}"
+  name     = "santan-${var.environment}-${var.location}"
   location = var.location
   tags     = var.tags
 }
@@ -35,8 +21,8 @@ module "rg_data" {
 module "vnet" {
   source              = "../../modules/virtual-network"
   name                = "vnet-${var.workload}-${var.environment}-${var.location}"
-  resource_group_name = module.rg_network.name
-  location            = module.rg_network.location
+  resource_group_name = module.rg.name
+  location            = module.rg.location
   address_space       = var.vnet_address_space
   tags                = var.tags
 }
@@ -44,7 +30,7 @@ module "vnet" {
 module "subnet_bastion" {
   source               = "../../modules/subnet"
   name                 = "AzureBastionSubnet"
-  resource_group_name  = module.rg_network.name
+  resource_group_name  = module.rg.name
   virtual_network_name = module.vnet.name
   address_prefixes     = ["10.10.0.0/26"]
 }
@@ -52,7 +38,7 @@ module "subnet_bastion" {
 module "subnet_aks" {
   source               = "../../modules/subnet"
   name                 = "snet-aks"
-  resource_group_name  = module.rg_network.name
+  resource_group_name  = module.rg.name
   virtual_network_name = module.vnet.name
   address_prefixes     = ["10.10.4.0/22"]
 }
@@ -60,7 +46,7 @@ module "subnet_aks" {
 module "subnet_backend" {
   source               = "../../modules/subnet"
   name                 = "snet-backend"
-  resource_group_name  = module.rg_network.name
+  resource_group_name  = module.rg.name
   virtual_network_name = module.vnet.name
   address_prefixes     = ["10.10.8.0/24"]
 }
@@ -68,7 +54,7 @@ module "subnet_backend" {
 module "subnet_pe" {
   source               = "../../modules/subnet"
   name                 = "snet-pe"
-  resource_group_name  = module.rg_network.name
+  resource_group_name  = module.rg.name
   virtual_network_name = module.vnet.name
   address_prefixes     = ["10.10.9.0/24"]
 }
@@ -76,7 +62,7 @@ module "subnet_pe" {
 module "subnet_appservice" {
   source               = "../../modules/subnet"
   name                 = "snet-appservice"
-  resource_group_name  = module.rg_network.name
+  resource_group_name  = module.rg.name
   virtual_network_name = module.vnet.name
   address_prefixes     = ["10.10.10.0/24"]
   delegation = {
@@ -92,8 +78,8 @@ module "subnet_appservice" {
 module "log_analytics" {
   source              = "../../modules/log-analytics"
   name                = "log-${var.workload}-${var.environment}-${var.location}"
-  resource_group_name = module.rg_compute.name
-  location            = module.rg_compute.location
+  resource_group_name = module.rg.name
+  location            = module.rg.location
   retention_in_days   = 30
   tags                = var.tags
 }
@@ -102,8 +88,8 @@ module "log_analytics" {
 module "acr" {
   source                        = "../../modules/acr"
   name                          = "cr${var.workload}${var.environment}001"
-  resource_group_name           = module.rg_compute.name
-  location                      = module.rg_compute.location
+  resource_group_name           = module.rg.name
+  location                      = module.rg.location
   sku                           = "Standard"
   admin_enabled                 = false
   public_network_access_enabled = true
@@ -114,8 +100,8 @@ module "acr" {
 module "aks" {
   source                     = "../../modules/aks"
   name                       = "aks-${var.workload}-${var.environment}-${var.location}"
-  resource_group_name        = module.rg_compute.name
-  location                   = module.rg_compute.location
+  resource_group_name        = module.rg.name
+  location                   = module.rg.location
   dns_prefix                 = "aks-${var.environment}"
   log_analytics_workspace_id = module.log_analytics.id
   vnet_subnet_id             = module.subnet_aks.id
@@ -134,8 +120,8 @@ module "aks" {
 module "key_vault" {
   source                        = "../../modules/key-vault"
   name                          = "kv-${var.workload}-${var.environment}${substr(random_id.suffix.hex, 0, 7)}"
-  resource_group_name           = module.rg_data.name
-  location                      = module.rg_data.location
+  resource_group_name           = module.rg.name
+  location                      = module.rg.location
   tenant_id                     = data.azurerm_client_config.current.tenant_id
   public_network_access_enabled = true
   tags                          = var.tags
@@ -145,8 +131,8 @@ module "key_vault" {
 module "storage" {
   source                        = "../../modules/storage-account"
   name                          = "st${var.workload}${var.environment}${random_id.suffix.hex}"
-  resource_group_name           = module.rg_data.name
-  location                      = module.rg_data.location
+  resource_group_name           = module.rg.name
+  location                      = module.rg.location
   account_tier                  = "Standard"
   account_replication_type      = "LRS"
   public_network_access_enabled = true
@@ -164,7 +150,7 @@ module "storage" {
 module "sql_server" {
   source                       = "../../modules/sql-server"
   name                         = "sql-${var.workload}-${var.environment}-${var.sql_location}"
-  resource_group_name          = module.rg_data.name
+  resource_group_name          = module.rg.name
   location                     = var.sql_location
   administrator_login          = var.sql_admin_username
   administrator_login_password = var.sql_admin_password
@@ -184,8 +170,8 @@ module "sql_database" {
 module "pip_bastion" {
   source              = "../../modules/public-ip"
   name                = "pip-bas-${var.environment}-${var.location}"
-  resource_group_name = module.rg_network.name
-  location            = module.rg_network.location
+  resource_group_name = module.rg.name
+  location            = module.rg.location
   allocation_method   = "Static"
   sku                 = "Standard"
   tags                = var.tags
@@ -194,8 +180,8 @@ module "pip_bastion" {
 module "bastion" {
   source               = "../../modules/bastion"
   name                 = "bas-${var.environment}-${var.location}"
-  resource_group_name  = module.rg_network.name
-  location             = module.rg_network.location
+  resource_group_name  = module.rg.name
+  location             = module.rg.location
   subnet_id            = module.subnet_bastion.id
   public_ip_address_id = module.pip_bastion.id
   sku                  = "Standard"
@@ -207,8 +193,8 @@ module "bastion" {
 module "pip_nat" {
   source              = "../../modules/public-ip"
   name                = "pip-ng-${var.environment}-${var.location}"
-  resource_group_name = module.rg_network.name
-  location            = module.rg_network.location
+  resource_group_name = module.rg.name
+  location            = module.rg.location
   allocation_method   = "Static"
   sku                 = "Standard"
   tags                = var.tags
@@ -217,8 +203,8 @@ module "pip_nat" {
 module "nat_gateway" {
   source                = "../../modules/nat-gateway"
   name                  = "ng-${var.environment}-${var.location}"
-  resource_group_name   = module.rg_network.name
-  location              = module.rg_network.location
+  resource_group_name   = module.rg.name
+  location              = module.rg.location
   public_ip_address_ids = [module.pip_nat.id]
   subnet_ids            = [module.subnet_aks.id, module.subnet_backend.id]
   tags                  = var.tags
@@ -228,8 +214,8 @@ module "nat_gateway" {
 module "redis" {
   source                        = "../../modules/redis-cache"
   name                          = "redis-${var.workload}-${var.environment}-${random_id.suffix.hex}"
-  resource_group_name           = module.rg_data.name
-  location                      = module.rg_data.location
+  resource_group_name           = module.rg.name
+  location                      = module.rg.location
   sku_name                      = "Standard"
   capacity                      = 1
   family                        = "C"
@@ -241,8 +227,8 @@ module "redis" {
 module "app_service" {
   source              = "../../modules/app-service"
   plan_name           = "asp-${var.workload}-${var.environment}"
-  resource_group_name = module.rg_compute.name
-  location            = module.rg_compute.location
+  resource_group_name = module.rg.name
+  location            = module.rg.location
   os_type             = "Linux"
   sku_name            = "B1"
 
@@ -269,8 +255,8 @@ module "app_service" {
 module "linux_vm" {
   source                          = "../../modules/linux-vm"
   name                            = var.vm_name
-  resource_group_name             = module.rg_compute.name
-  location                        = module.rg_compute.location
+  resource_group_name             = module.rg.name
+  location                        = module.rg.location
   subnet_id                       = module.subnet_backend.id
   vm_size                         = var.vm_size
   admin_username                  = var.vm_admin_username
